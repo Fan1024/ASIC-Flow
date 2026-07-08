@@ -1,0 +1,41 @@
+# Runtime outputs
+logs/
+reports/
+outputs/
+results/
+dbs/
+work/
+
+# Tool generated files
+*.log
+*.cmd
+*.rpt
+*.rpt.gz
+*.db
+*.jou
+*.str
+*.history
+*.key
+
+# EDA database / intermediate files
+*.enc
+*.dat
+*.spef
+*.sdf
+*.sdc.tmp
+
+# Do not track PDK / library files
+*.lib
+*.lef
+*.gds
+*.gds2
+*.tf
+*.qrc
+*.cap
+captables/
+
+# OS/editor
+.DS_Store
+*.swp
+*.swo
+EOF

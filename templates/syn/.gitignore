@@ -1,0 +1,11 @@
+logs/
+reports/
+outputs/
+results/
+dbs/
+work/
+*.log
+*.cmd
+*.db
+*.rpt
+*.rpt.gz
