@@ -1,31 +1,51 @@
 # ============================================================
 # Batch synthesis entry script
+#
+# Expected launch directory:
+#   syn/runs/run_xxx/
+#
+# Usage:
+#   genus -f ../../scripts/run_genus.tcl
 # ============================================================
 
 set RUN_SYNTH true
+set CHECK_ONLY false
 set EXIT_AFTER_RUN true
 set GUI_MODE false
-set CHECK_ONLY false
 
 set SCRIPTS_DIR [file normalize [file dirname [info script]]]
 set SYN_DIR     [file normalize "$SCRIPTS_DIR/.."]
 set RUN_DIR     [file normalize [pwd]]
 
-foreach directory {
-    logs
-    reports
-    results
-    outputs
-    dbs
-    work
-    fv
-} {
-    file mkdir "$RUN_DIR/$directory"
+set LOG_DIR    "$RUN_DIR/logs"
+set REPORT_DIR "$RUN_DIR/reports"
+set RESULT_DIR "$RUN_DIR/results"
+set OUTPUT_DIR "$RUN_DIR/outputs"
+set DB_DIR     "$RUN_DIR/dbs"
+set WORK_DIR   "$RUN_DIR/work"
+set FV_DIR     "$RUN_DIR/fv"
+
+foreach directory [list \
+    $LOG_DIR \
+    $REPORT_DIR \
+    $RESULT_DIR \
+    $OUTPUT_DIR \
+    $DB_DIR \
+    $WORK_DIR \
+    $FV_DIR \
+] {
+    file mkdir $directory
 }
 
 puts "INFO: SCRIPTS_DIR = $SCRIPTS_DIR"
 puts "INFO: SYN_DIR     = $SYN_DIR"
 puts "INFO: RUN_DIR     = $RUN_DIR"
+
+if {![info exists ::env(ASIC_FLOW_HOME)] ||
+    [string trim $::env(ASIC_FLOW_HOME)] eq ""} {
+    puts "ERROR: ASIC_FLOW_HOME is not set"
+    exit 1
+}
 
 source "$SCRIPTS_DIR/config.tcl"
 
@@ -33,14 +53,24 @@ if {![info exists PDK_NAME] || [string trim $PDK_NAME] eq ""} {
     set PDK_NAME "nangate45"
 }
 
-set PDK_SETUP \
-    "$::env(ASIC_FLOW_HOME)/common/pdk/${PDK_NAME}.tcl"
+set PDK_SETUP [file normalize \
+    "$::env(ASIC_FLOW_HOME)/common/pdk/${PDK_NAME}.tcl"]
+set HELPER_SCRIPT [file normalize \
+    "$::env(ASIC_FLOW_HOME)/common/syn/genus_helpers.tcl"]
+set COMMON_SCRIPT [file normalize \
+    "$::env(ASIC_FLOW_HOME)/common/syn/genus_synth_common.tcl"]
 
-if {![file isfile $PDK_SETUP]} {
-    puts "ERROR: PDK setup does not exist: $PDK_SETUP"
-    exit 1
+foreach required_script [list \
+    $PDK_SETUP \
+    $HELPER_SCRIPT \
+    $COMMON_SCRIPT \
+] {
+    if {![file isfile $required_script]} {
+        puts "ERROR: Required flow script does not exist: $required_script"
+        exit 1
+    }
 }
 
 source $PDK_SETUP
-source "$::env(ASIC_FLOW_HOME)/common/syn/genus_helpers.tcl"
-source "$::env(ASIC_FLOW_HOME)/common/syn/genus_synth_common.tcl"
+source $HELPER_SCRIPT
+source $COMMON_SCRIPT
