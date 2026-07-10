@@ -22,6 +22,28 @@
 # Required from common/pdk/nangate45.tcl:
 #   SYN_LIBS
 # ============================================================
+if {![info exists CHECK_ONLY]} {
+    set CHECK_ONLY false
+}
+
+
+foreach required_var {
+    DESIGN_NAME
+    TOP_MODULE
+    RTL_ROOT
+    CLOCK_PORT
+    CLOCK_PERIOD
+    SYN_LIBS
+} {
+    if {![info exists $required_var] ||
+        [string trim [set $required_var]] eq ""} {
+        flow_fatal "Required variable is missing: $required_var"
+    }
+}
+
+if {![file isdirectory $RTL_ROOT]} {
+    flow_fatal "RTL_ROOT does not exist: $RTL_ROOT"
+}
 
 catch {alias h history}
 
@@ -68,25 +90,72 @@ proc flow_fatal {msg} {
 
 # ------------------------------------------------------------
 # Directory setup
-# Genus is launched inside syn/runs/run_xxx/
+# All generated files should go under RUN_DIR.
+# Genus should be launched from syn/runs/run_xxx/.
 # ------------------------------------------------------------
-set REP_GEN ./reports/generic
-set REP_MAP ./reports/map
-set REP_OPT ./reports/opt
-set REP_GUI ./reports/gui
-set OUTPUT  ./results/${DESIGN_NAME}.SYN
 
-file mkdir logs
-file mkdir reports
-file mkdir $REP_GEN
-file mkdir $REP_MAP
-file mkdir $REP_OPT
-file mkdir $REP_GUI
-file mkdir results
-file mkdir $OUTPUT
-file mkdir outputs
-file mkdir dbs
-file mkdir work
+if {![info exists RUN_DIR]} {
+    set RUN_DIR [file normalize [pwd]]
+}
+
+if {![info exists LOG_DIR]} {
+    set LOG_DIR "$RUN_DIR/logs"
+}
+
+if {![info exists REPORT_DIR]} {
+    set REPORT_DIR "$RUN_DIR/reports"
+}
+
+if {![info exists RESULT_DIR]} {
+    set RESULT_DIR "$RUN_DIR/results"
+}
+
+if {![info exists OUTPUT_DIR]} {
+    set OUTPUT_DIR "$RUN_DIR/outputs"
+}
+
+if {![info exists DB_DIR]} {
+    set DB_DIR "$RUN_DIR/dbs"
+}
+
+if {![info exists WORK_DIR]} {
+    set WORK_DIR "$RUN_DIR/work"
+}
+
+if {![info exists FV_DIR]} {
+    set FV_DIR "$RUN_DIR/fv"
+}
+
+set REP_GEN "$REPORT_DIR/generic"
+set REP_MAP "$REPORT_DIR/map"
+set REP_OPT "$REPORT_DIR/opt"
+set REP_GUI "$REPORT_DIR/gui"
+set OUTPUT  "$RESULT_DIR/${DESIGN_NAME}.SYN"
+
+foreach d [list \
+    $LOG_DIR \
+    $REPORT_DIR \
+    $REP_GEN \
+    $REP_MAP \
+    $REP_OPT \
+    $REP_GUI \
+    $RESULT_DIR \
+    $OUTPUT \
+    $OUTPUT_DIR \
+    $DB_DIR \
+    $WORK_DIR \
+    $FV_DIR \
+] {
+    file mkdir $d
+}
+
+puts "INFO: RUN_DIR    = $RUN_DIR"
+puts "INFO: LOG_DIR    = $LOG_DIR"
+puts "INFO: REPORT_DIR = $REPORT_DIR"
+puts "INFO: RESULT_DIR = $RESULT_DIR"
+puts "INFO: OUTPUT_DIR = $OUTPUT_DIR"
+puts "INFO: DB_DIR     = $DB_DIR"
+puts "INFO: WORK_DIR   = $WORK_DIR"
 
 puts "============================================================"
 puts "INFO: Starting Genus common synthesis flow"
@@ -167,14 +236,39 @@ if {$USE_PHYSICAL} {
 }
 
 # ------------------------------------------------------------
-# Read RTL
+# Optional pre-read hook
 # ------------------------------------------------------------
-if {![file exists $FILELIST]} {
-    flow_fatal "FILELIST does not exist: $FILELIST"
+if {![info exists PRE_READ_TCL]} {
+    set PRE_READ_TCL ""
 }
 
-puts "INFO: Reading RTL from filelist: $FILELIST"
-read_hdl -sv -f $FILELIST
+if {![info exists POST_READ_TCL]} {
+    set POST_READ_TCL ""
+}
+
+if {[catch {
+    flow_source_optional $PRE_READ_TCL "pre-read Tcl hook"
+} msg]} {
+    flow_fatal $msg
+}
+
+# ------------------------------------------------------------
+# Read HDL
+# ------------------------------------------------------------
+if {[catch {
+    flow_read_all_hdl
+} msg]} {
+    flow_fatal "HDL read failed: $msg"
+}
+
+# ------------------------------------------------------------
+# Optional post-read hook
+# ------------------------------------------------------------
+if {[catch {
+    flow_source_optional $POST_READ_TCL "post-read Tcl hook"
+} msg]} {
+    flow_fatal $msg
+}
 
 # ------------------------------------------------------------
 # Elaborate
@@ -226,10 +320,10 @@ if {[file exists $SDC_FILE]} {
 }
 
 if {[info exists ::dc::sdc_failed_commands]} {
-    echo $::dc::sdc_failed_commands > reports/sdc_failed_commands.rpt
+    echo $::dc::sdc_failed_commands > $REPORT_DIR/sdc_failed_commands.rpt
 }
 
-set fp_excep [open "./reports/exceptions.rpt" "w"]
+set fp_excep [open "$REPORT_DIR/exceptions.rpt" "w"]
 if {![catch {set all_exceptions [get_db exceptions]} msg]} {
     foreach excep $all_exceptions {
         set line "[get_db $excep .name] \t [get_db $excep .exception_type] \t [get_db $excep .priority]"
@@ -242,7 +336,24 @@ if {![catch {set all_exceptions [get_db exceptions]} msg]} {
 close $fp_excep
 
 check_timing_intent -verbose > $REP_GEN/check_timing.rpt
+if {$CHECK_ONLY} {
+    puts "============================================================"
+    puts "INFO: HDL check completed successfully"
+    puts "INFO: DESIGN_NAME = $DESIGN_NAME"
+    puts "INFO: TOP_MODULE  = $TOP_MODULE"
+    puts "INFO: No unresolved modules or blackboxes were found"
+    puts "INFO: Stopping before syn_generic"
+    puts "============================================================"
 
+    report_messages -all \
+        > $REP_GEN/${DESIGN_NAME}.check.messages.rpt
+
+    if {$EXIT_AFTER_RUN} {
+        exit
+    } else {
+        return
+    }
+}
 # ------------------------------------------------------------
 # Cost groups
 # ------------------------------------------------------------
@@ -271,8 +382,8 @@ if {!$RUN_SYNTH} {
     puts "INFO:   syn_opt"
     puts ""
     puts "INFO: To write results manually after syn_opt:"
-    puts "INFO:   write_hdl > outputs/${DESIGN_NAME}_mapped.v"
-    puts "INFO:   write_sdc > outputs/${DESIGN_NAME}.sdc"
+    puts "INFO: write_hdl > $OUTPUT_DIR/${DESIGN_NAME}_mapped.v"
+    puts "INFO: write_sdc > $OUTPUT_DIR/${DESIGN_NAME}.sdc"
     puts ""
     puts "INFO: This script intentionally does not exit Genus."
     puts "============================================================"
@@ -295,7 +406,7 @@ syn_generic
 catch {time_info GENERIC}
 
 report_dp > $REP_GEN/${DESIGN_NAME}.generic.datapath.rpt
-write_snapshot -outdir ./dbs/ -tag generic
+write_snapshot -outdir $DB_DIR -tag generic
 report_summary -directory $REP_GEN
 
 # ------------------------------------------------------------
@@ -308,7 +419,7 @@ syn_map
 
 catch {time_info MAPPED}
 
-write_snapshot -outdir ./dbs/ -tag map
+write_snapshot -outdir $DB_DIR -tag map
 report_summary -directory $REP_MAP
 
 set num_regs 0
@@ -335,7 +446,7 @@ safe_set_db / .syn_opt_effort $MAP_OPT_EFF
 puts "INFO: Running syn_opt"
 syn_opt
 
-write_snapshot -outdir ./dbs/ -tag opt
+write_snapshot -outdir $DB_DIR -tag opt
 report_summary -directory $REP_OPT
 
 catch {time_info OPT}
@@ -372,8 +483,8 @@ echo "Num FFs: $num_regs\nNum Nets: $num_nets" > ${REP_OPT}/stats.opt.rpt
 write_hdl > $OUTPUT/${DESIGN_NAME}.mapped.v
 write_sdc > $OUTPUT/${DESIGN_NAME}.mapped.sdc
 
-file copy -force $OUTPUT/${DESIGN_NAME}.mapped.v   ./outputs/${DESIGN_NAME}_mapped.v
-file copy -force $OUTPUT/${DESIGN_NAME}.mapped.sdc ./outputs/${DESIGN_NAME}.sdc
+file copy -force $OUTPUT/${DESIGN_NAME}.mapped.v $OUTPUT_DIR/${DESIGN_NAME}_mapped.v
+file copy -force $OUTPUT/${DESIGN_NAME}.mapped.sdc $OUTPUT_DIR/${DESIGN_NAME}.sdc
 
 # ------------------------------------------------------------
 # Manifest

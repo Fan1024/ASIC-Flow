@@ -24,6 +24,18 @@ rm -f latest
 ln -s "$$run_dir" latest
 endef
 
+check:
+>set -e -o pipefail
+>$(make_run_dir)
+>echo "INFO: Checking HDL and elaboration in $$run_dir"
+>source "$(ENV_SCRIPT)"
+>cd "$$run_dir"
+>which genus
+>genus -f ../../scripts/run_genus_check.tcl \
+>  | tee logs/genus_check_console.log
+>echo "INFO: HDL check saved to ../../$$run_dir"
+>echo "INFO: latest -> $$run_dir"
+
 syn:
 >set -e -o pipefail
 >$(make_run_dir)
@@ -84,4 +96,22 @@ clean:
 >rm -f genus.log genus.cmd *.log *.cmd
 >echo "INFO: Removed all generated synthesis runs and top-level temporary files"
 
-.PHONY: syn syn_gui gui list prune clean
+show-config:
+>@echo "ASIC_FLOW_HOME = $(ASIC_FLOW_HOME)"
+>@echo "ENV_SCRIPT     = $(ENV_SCRIPT)"
+>@test -n "$(ASIC_FLOW_HOME)" || \
+>  { echo "ERROR: ASIC_FLOW_HOME is not set"; exit 1; }
+>@test -f "$(ENV_SCRIPT)" || \
+>  { echo "ERROR: Missing $(ENV_SCRIPT)"; exit 1; }
+
+help:
+>@echo "Targets:"
+>@echo "  make check           Read HDL, elaborate and check constraints"
+>@echo "  make syn             Run batch synthesis"
+>@echo "  make syn_gui         Load RTL and constraints in Genus GUI"
+>@echo "  make gui             Open an empty Genus GUI"
+>@echo "  make list            List synthesis runs"
+>@echo "  make prune [RUN=...] Remove intermediate database files"
+>@echo "  make clean           Remove all generated runs"
+
+.PHONY: help show-config check syn syn_gui gui list prune clean

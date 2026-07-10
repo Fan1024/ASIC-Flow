@@ -1,10 +1,13 @@
 # Runtime outputs
+runs/
+latest
 logs/
 reports/
 outputs/
 results/
 dbs/
 work/
+fv/
 
 # Tool generated files
 *.log

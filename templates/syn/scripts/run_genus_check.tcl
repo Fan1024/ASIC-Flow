@@ -1,11 +1,19 @@
 # ============================================================
-# Batch synthesis entry script
+# HDL/elaboration/constraint check entry
+#
+# This mode:
+#   1. reads libraries;
+#   2. reads RTL and packages;
+#   3. elaborates the top;
+#   4. reads constraints;
+#   5. runs design/timing checks;
+#   6. exits before syn_generic.
 # ============================================================
 
-set RUN_SYNTH true
+set RUN_SYNTH false
 set EXIT_AFTER_RUN true
 set GUI_MODE false
-set CHECK_ONLY false
+set CHECK_ONLY true
 
 set SCRIPTS_DIR [file normalize [file dirname [info script]]]
 set SYN_DIR     [file normalize "$SCRIPTS_DIR/.."]
@@ -22,10 +30,6 @@ foreach directory {
 } {
     file mkdir "$RUN_DIR/$directory"
 }
-
-puts "INFO: SCRIPTS_DIR = $SCRIPTS_DIR"
-puts "INFO: SYN_DIR     = $SYN_DIR"
-puts "INFO: RUN_DIR     = $RUN_DIR"
 
 source "$SCRIPTS_DIR/config.tcl"
 
