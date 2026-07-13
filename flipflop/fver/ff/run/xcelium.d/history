@@ -1,0 +1,11 @@
+//
+// File created by:  xrun
+// Do not modify this file
+
+s1::(09Sep2024:13:44:46):( xrun -64bit -f ../scripts/xrun.f +gui +access+rwc )&&(./xcelium.d/env.d/env.history.09Sep2024_13_44_46)
+s2::(25Aug2025:11:00:00):( xrun -64bit -f ../scripts/xrun.f +gui +access+rwc )&&(./xcelium.d/env.d/env.history.25Aug2025_11_00_00)
+s3::(10Sep2025:07:01:47):( xrun -64bit -f ../scripts/xrun.f +gui +access+rwc )&&(./xcelium.d/env.d/env.history.10Sep2025_07_01_47)
+s4::(10Sep2025:07:26:37):( xrun -64bit )&&(./xcelium.d/env.d/env.history.10Sep2025_07_26_37)
+s5::(10Sep2025:07:26:50):( xrun -64bit +gui +access+rwc )&&(./xcelium.d/env.d/env.history.10Sep2025_07_26_50)
+s6::(10Sep2025:11:15:18):( xrun -64bit -f ../scripts/xrun.f +gui +access+rwc )&&(./xcelium.d/env.d/env.history.10Sep2025_11_15_18)
+s7::(10Sep2025:11:28:10):( xrun -64bit -f ../scripts/xrun.f +gui +access+rwc )&&(./xcelium.d/env.d/env.history.10Sep2025_11_28_10)

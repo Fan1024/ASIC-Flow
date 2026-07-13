@@ -1,0 +1,9 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
+-64bit
+-f
+../scripts/xrun.f
++gui
++access+rwc

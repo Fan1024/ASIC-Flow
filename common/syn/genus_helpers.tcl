@@ -141,10 +141,8 @@ proc flow_make_read_hdl_command {} {
 
     set command [list read_hdl -sv]
 
-    # Cadence read_hdl accepts the macro definitions as one
-    # Tcl list, for example: {SYNTHESIS RV32 FEATURE=1}.
-    if {[llength $HDL_DEFINES] > 0} {
-        lappend command -define $HDL_DEFINES
+    foreach define $HDL_DEFINES {
+        lappend command -define $define
     }
 
     return $command
@@ -167,7 +165,7 @@ proc flow_read_sv_files {files description} {
     foreach file $files {
         lappend command $file
     }
-
+    puts "INFO: Genus read_hdl command prefix: [lrange $command 0 3]"
     uplevel #0 $command
 }
 

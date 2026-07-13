@@ -1,0 +1,19 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
+-XLMODE
+./xcelium.d/run.lnx8664.24.03.d
+-RUNMODE
+../../../source/design/ff/ff.v
+../ff_tb.v
+-CDSLIB
+./xcelium.d/run.lnx8664.24.03.d/cdsrun.lib
+-HDLVAR
+./xcelium.d/run.lnx8664.24.03.d/hdlrun.var
+-no_analogsolver
+-MESSAGES
+-UPDATE
+-XLLIBSTORE
+./xcelium.d/run.lnx8664.24.03.d/xllibs
+-ALLOWUNBOUND
